@@ -1,1 +1,1 @@
-module.exports.SocketClient = require('./libs/SocketClient');
+module.exports = require('./libs/SocketClient');
