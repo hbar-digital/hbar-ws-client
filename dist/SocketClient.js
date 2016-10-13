@@ -25,7 +25,6 @@ module.exports = function (_EventEmitter) {
 
     _this.keepAliveInterval = options.keepAliveInterval || 25000;
     _this.timeoutDelay = options.timeoutDelay || 5000;
-    _this.useNative = options.useNative || false;
 
     _this._createConnection(address);
     return _this;
@@ -34,7 +33,7 @@ module.exports = function (_EventEmitter) {
   _createClass(SocketClient, [{
     key: '_createConnection',
     value: function _createConnection(address) {
-      this.socket = this.useNative ? new WebSocket(address) : new SockJS(address);
+      this.socket = new SockJS(address, null, 'websocket');
 
       this.socket.onopen = this._onOpen.bind(this);
       this.socket.onclose = this._onClose.bind(this);
@@ -42,8 +41,15 @@ module.exports = function (_EventEmitter) {
       this.socket.onerror = this._onError.bind(this);
     }
   }, {
+    key: '_getSessionId',
+    value: function _getSessionId() {
+      var parts = this.socket._transport.url.split('/');
+      return parts[parts.length - 2];
+    }
+  }, {
     key: '_onOpen',
     value: function _onOpen() {
+      this.sessionId = this._getSessionId();
       this.reconnectInterval = setInterval(this._ping.bind(this), this.keepAliveInterval);
       if (this.onopen) this.onopen();
     }
@@ -58,7 +64,6 @@ module.exports = function (_EventEmitter) {
   }, {
     key: '_onMessage',
     value: function _onMessage(message) {
-      // if(this.useNative) message = message.data
       var data = JSON.parse(message.data);
 
       if (data.topic == 'pong') {
@@ -70,7 +75,6 @@ module.exports = function (_EventEmitter) {
   }, {
     key: '_onError',
     value: function _onError(error) {
-      if (this.useNative) error = error.message;
       if (this.onerror) this.onerror(error);
     }
   }, {
