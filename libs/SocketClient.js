@@ -9,13 +9,12 @@ module.exports = class SocketClient extends EventEmitter {
 
     this.keepAliveInterval = options.keepAliveInterval || 25000;
     this.timeoutDelay = options.timeoutDelay || 5000;
-    this.useNative = options.useNative || false;
 
     this._createConnection(address);
   }
 
   _createConnection(address) {
-    this.socket = this.useNative ? new WebSocket(address) : new SockJS(address, null, 'websocket');
+    this.socket = new SockJS(address, null, 'websocket');
 
     this.socket.onopen = this._onOpen.bind(this);
     this.socket.onclose = this._onClose.bind(this);
@@ -44,7 +43,6 @@ module.exports = class SocketClient extends EventEmitter {
   }
 
   _onMessage(message) {
-    // if(this.useNative) message = message.data
     var data = JSON.parse(message.data);
 
     if(data.topic == 'pong') {
@@ -55,7 +53,6 @@ module.exports = class SocketClient extends EventEmitter {
   }
 
   _onError(error) {
-    if(this.useNative) error = error.message;
     if(this.onerror) this.onerror(error);
   }
 
