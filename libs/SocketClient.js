@@ -15,7 +15,7 @@ module.exports = class SocketClient extends EventEmitter {
   }
 
   _createConnection(address) {
-    this.socket = this.useNative ? new WebSocket(address) : new SockJS(address);
+    this.socket = this.useNative ? new WebSocket(address) : new SockJS(address, null, 'websocket');
 
     this.socket.onopen = this._onOpen.bind(this);
     this.socket.onclose = this._onClose.bind(this);
@@ -24,7 +24,14 @@ module.exports = class SocketClient extends EventEmitter {
   }
 
 
+  _getSessionId() {
+    let parts = this.socket._transport.url.split('/');
+    return parts[parts.length - 2];
+  }
+
+
   _onOpen() {
+    this.sessionId = this._getSessionId();
     this.reconnectInterval = setInterval(this._ping.bind(this), this.keepAliveInterval);
     if(this.onopen) this.onopen();
   }
