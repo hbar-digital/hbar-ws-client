@@ -1,6 +1,6 @@
 {
   "name": "hbar-ws-client",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "SockJS Client Abstraction",
   "main": "index.js",
   "scripts": {

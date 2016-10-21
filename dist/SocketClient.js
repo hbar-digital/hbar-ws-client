@@ -98,7 +98,7 @@ module.exports = function (_EventEmitter) {
   }, {
     key: '_emit',
     value: function _emit(topic, data) {
-      this.socket.send(JSON.stringify({ topic: topic, data: data }));
+      if (this.state === 'CONNECTED') this.socket.send(JSON.stringify({ topic: topic, data: data }));
     }
   }, {
     key: '_reconnect',

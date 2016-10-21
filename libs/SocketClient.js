@@ -73,7 +73,8 @@ module.exports = class SocketClient extends EventEmitter {
   }
 
   _emit(topic, data) {
-    this.socket.send(JSON.stringify({topic : topic, data : data}));
+    if(this.state === 'CONNECTED')
+      this.socket.send(JSON.stringify({topic : topic, data : data}));
   }
 
   _reconnect() {
