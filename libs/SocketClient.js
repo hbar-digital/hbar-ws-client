@@ -7,10 +7,24 @@ module.exports = class SocketClient extends EventEmitter {
     this.dispatchEvent = this.emit;
     this.emit = this._emit;
 
+    this.address = address;
+    this.tryReconnect = options.tryReconnect !== undefined ? options.tryReconnect : true;
     this.keepAliveInterval = options.keepAliveInterval || 25000;
     this.timeoutDelay = options.timeoutDelay || 5000;
+    this.retryDelay = options.retryDelay || 1000;
 
-    this._createConnection(address);
+    this._setState('CONNECTING');
+    this._createConnection(this.address);
+  }
+
+  close() {
+    this.tryReconnect = false;
+    this.socket.close();
+  }
+
+  _setState(state) {
+    this.state = state;
+    if(this.onstate) this.onstate(this.state);
   }
 
   _createConnection(address) {
@@ -30,30 +44,32 @@ module.exports = class SocketClient extends EventEmitter {
 
 
   _onOpen() {
+    this._setState('CONNECTED');
     this.sessionId = this._getSessionId();
     this.reconnectInterval = setInterval(this._ping.bind(this), this.keepAliveInterval);
     if(this.onopen) this.onopen();
   }
 
-  _onClose(reconnect) {
+  _onClose() {
+    this._setState('CLOSED');
     clearInterval(this.reconnectInterval);
     if(this.onclose) this.onclose();
 
-    this._reconnect();
+    if(this.tryReconnect) this._reconnect();
   }
 
   _onMessage(message) {
     var data = JSON.parse(message.data);
 
-    if(data.topic == 'pong') {
-      clearTimeout(this.disconnectTimeout);
-    }
+    if(data.topic == 'pong') clearTimeout(this.disconnectTimeout);
 
     this.dispatchEvent(data.topic, data.data);
   }
 
   _onError(error) {
     if(this.onerror) this.onerror(error);
+
+    if(this.tryReconnect) setTimeout(this._reconnect, this.retryDelay);
   }
 
   _emit(topic, data) {
@@ -61,11 +77,9 @@ module.exports = class SocketClient extends EventEmitter {
   }
 
   _reconnect() {
-    console.log('reconnecting');
+    this._setState('RECONNECTING');
 
-    //TODO:
-    // add reconnect logic
-    // ie. call _createConnection on an interval
+    this._createConnection(this.address);
   }
 
   _ping() {

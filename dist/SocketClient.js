@@ -23,14 +23,30 @@ module.exports = function (_EventEmitter) {
     _this.dispatchEvent = _this.emit;
     _this.emit = _this._emit;
 
+    _this.address = address;
+    _this.tryReconnect = options.tryReconnect !== undefined ? options.tryReconnect : true;
     _this.keepAliveInterval = options.keepAliveInterval || 25000;
     _this.timeoutDelay = options.timeoutDelay || 5000;
+    _this.retryDelay = options.retryDelay || 1000;
 
-    _this._createConnection(address);
+    _this._setState('CONNECTING');
+    _this._createConnection(_this.address);
     return _this;
   }
 
   _createClass(SocketClient, [{
+    key: 'close',
+    value: function close() {
+      this.tryReconnect = false;
+      this.socket.close();
+    }
+  }, {
+    key: '_setState',
+    value: function _setState(state) {
+      this.state = state;
+      if (this.onstate) this.onstate(this.state);
+    }
+  }, {
     key: '_createConnection',
     value: function _createConnection(address) {
       this.socket = new SockJS(address, null, 'websocket');
@@ -49,26 +65,26 @@ module.exports = function (_EventEmitter) {
   }, {
     key: '_onOpen',
     value: function _onOpen() {
+      this._setState('CONNECTED');
       this.sessionId = this._getSessionId();
       this.reconnectInterval = setInterval(this._ping.bind(this), this.keepAliveInterval);
       if (this.onopen) this.onopen();
     }
   }, {
     key: '_onClose',
-    value: function _onClose(reconnect) {
+    value: function _onClose() {
+      this._setState('CLOSED');
       clearInterval(this.reconnectInterval);
       if (this.onclose) this.onclose();
 
-      this._reconnect();
+      if (this.tryReconnect) this._reconnect();
     }
   }, {
     key: '_onMessage',
     value: function _onMessage(message) {
       var data = JSON.parse(message.data);
 
-      if (data.topic == 'pong') {
-        clearTimeout(this.disconnectTimeout);
-      }
+      if (data.topic == 'pong') clearTimeout(this.disconnectTimeout);
 
       this.dispatchEvent(data.topic, data.data);
     }
@@ -76,6 +92,8 @@ module.exports = function (_EventEmitter) {
     key: '_onError',
     value: function _onError(error) {
       if (this.onerror) this.onerror(error);
+
+      if (this.tryReconnect) setTimeout(this._reconnect, this.retryDelay);
     }
   }, {
     key: '_emit',
@@ -85,11 +103,9 @@ module.exports = function (_EventEmitter) {
   }, {
     key: '_reconnect',
     value: function _reconnect() {
-      console.log('reconnecting');
+      this._setState('RECONNECTING');
 
-      //TODO:
-      // add reconnect logic
-      // ie. call _createConnection on an interval
+      this._createConnection(this.address);
     }
   }, {
     key: '_ping',
