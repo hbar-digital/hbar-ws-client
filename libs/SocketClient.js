@@ -14,7 +14,7 @@ module.exports = class SocketClient extends EventEmitter {
     this.retryDelay = options.retryDelay || 1000;
 
     this._setState('CONNECTING');
-    this._createConnection(this.address);
+    this._createConnection();
   }
 
   close() {
@@ -27,8 +27,8 @@ module.exports = class SocketClient extends EventEmitter {
     if(this.onstate) this.onstate(this.state);
   }
 
-  _createConnection(address) {
-    this.socket = new SockJS(address, null, 'websocket');
+  _createConnection() {
+    this.socket = new SockJS(this.address, null, 'websocket');
 
     this.socket.onopen = this._onOpen.bind(this);
     this.socket.onclose = this._onClose.bind(this);
@@ -80,7 +80,7 @@ module.exports = class SocketClient extends EventEmitter {
   _reconnect() {
     this._setState('RECONNECTING');
 
-    this._createConnection(this.address);
+    this._createConnection();
   }
 
   _ping() {

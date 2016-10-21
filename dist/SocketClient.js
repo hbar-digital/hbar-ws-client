@@ -30,7 +30,7 @@ module.exports = function (_EventEmitter) {
     _this.retryDelay = options.retryDelay || 1000;
 
     _this._setState('CONNECTING');
-    _this._createConnection(_this.address);
+    _this._createConnection();
     return _this;
   }
 
@@ -48,8 +48,8 @@ module.exports = function (_EventEmitter) {
     }
   }, {
     key: '_createConnection',
-    value: function _createConnection(address) {
-      this.socket = new SockJS(address, null, 'websocket');
+    value: function _createConnection() {
+      this.socket = new SockJS(this.address, null, 'websocket');
 
       this.socket.onopen = this._onOpen.bind(this);
       this.socket.onclose = this._onClose.bind(this);
@@ -105,7 +105,7 @@ module.exports = function (_EventEmitter) {
     value: function _reconnect() {
       this._setState('RECONNECTING');
 
-      this._createConnection(this.address);
+      this._createConnection();
     }
   }, {
     key: '_ping',
