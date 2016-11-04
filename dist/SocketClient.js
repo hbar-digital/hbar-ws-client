@@ -29,8 +29,8 @@ module.exports = function (_EventEmitter) {
     _this.timeoutDelay = options.timeoutDelay || 5000;
     _this.retryDelay = options.retryDelay || 1000;
 
-    _this._setState('CONNECTING');
     _this._createConnection();
+    _this._setState('CONNECTING');
     return _this;
   }
 
@@ -43,6 +43,7 @@ module.exports = function (_EventEmitter) {
   }, {
     key: '_setState',
     value: function _setState(state) {
+      console.log('SOCKET STATE', state, this.socket.readyState);
       this.state = state;
       if (this.onstate) this.onstate(this.state);
     }
@@ -67,17 +68,17 @@ module.exports = function (_EventEmitter) {
     value: function _onOpen() {
       this._setState('CONNECTED');
       this.sessionId = this._getSessionId();
-      this.reconnectInterval = setInterval(this._ping.bind(this), this.keepAliveInterval);
+      this.pingInterval = setInterval(this._ping.bind(this), this.keepAliveInterval);
       if (this.onopen) this.onopen();
     }
   }, {
     key: '_onClose',
-    value: function _onClose() {
+    value: function _onClose(error) {
       this._setState('CLOSED');
-      clearInterval(this.reconnectInterval);
+      clearInterval(this.pingInterval);
       if (this.onclose) this.onclose();
 
-      if (this.tryReconnect) this._reconnect();
+      if (error && this.tryReconnect) this._reconnect();
     }
   }, {
     key: '_onMessage',
@@ -91,9 +92,10 @@ module.exports = function (_EventEmitter) {
   }, {
     key: '_onError',
     value: function _onError(error) {
+      console.log("ERROR", error);
       if (this.onerror) this.onerror(error);
 
-      if (this.tryReconnect) setTimeout(this._reconnect, this.retryDelay);
+      if (this.tryReconnect) this._reconnect();
     }
   }, {
     key: '_emit',
@@ -105,7 +107,9 @@ module.exports = function (_EventEmitter) {
     value: function _reconnect() {
       this._setState('RECONNECTING');
 
-      this._createConnection();
+      this.socket.close();
+
+      setTimeout(this._createConnection.bind(this), this.retryDelay);
     }
   }, {
     key: '_ping',

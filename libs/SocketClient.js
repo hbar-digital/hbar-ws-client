@@ -13,8 +13,8 @@ module.exports = class SocketClient extends EventEmitter {
     this.timeoutDelay = options.timeoutDelay || 5000;
     this.retryDelay = options.retryDelay || 1000;
 
-    this._setState('CONNECTING');
     this._createConnection();
+    this._setState('CONNECTING');
   }
 
   close() {
@@ -23,6 +23,7 @@ module.exports = class SocketClient extends EventEmitter {
   }
 
   _setState(state) {
+    console.log('SOCKET STATE', state, this.socket.readyState);
     this.state = state;
     if(this.onstate) this.onstate(this.state);
   }
@@ -46,16 +47,16 @@ module.exports = class SocketClient extends EventEmitter {
   _onOpen() {
     this._setState('CONNECTED');
     this.sessionId = this._getSessionId();
-    this.reconnectInterval = setInterval(this._ping.bind(this), this.keepAliveInterval);
+    this.pingInterval = setInterval(this._ping.bind(this), this.keepAliveInterval);
     if(this.onopen) this.onopen();
   }
 
-  _onClose() {
+  _onClose(error) {
     this._setState('CLOSED');
-    clearInterval(this.reconnectInterval);
+    clearInterval(this.pingInterval);
     if(this.onclose) this.onclose();
 
-    if(this.tryReconnect) this._reconnect();
+    if(error && this.tryReconnect) this._reconnect();
   }
 
   _onMessage(message) {
@@ -67,9 +68,10 @@ module.exports = class SocketClient extends EventEmitter {
   }
 
   _onError(error) {
+    console.log("ERROR", error);
     if(this.onerror) this.onerror(error);
 
-    if(this.tryReconnect) setTimeout(this._reconnect, this.retryDelay);
+    if(this.tryReconnect) this._reconnect();
   }
 
   _emit(topic, data) {
@@ -80,7 +82,9 @@ module.exports = class SocketClient extends EventEmitter {
   _reconnect() {
     this._setState('RECONNECTING');
 
-    this._createConnection();
+    this.socket.close();
+
+    setTimeout(this._createConnection.bind(this), this.retryDelay);
   }
 
   _ping() {
