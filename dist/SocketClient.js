@@ -78,7 +78,7 @@ module.exports = function (_EventEmitter) {
       clearInterval(this.pingInterval);
       if (this.onclose) this.onclose();
 
-      if (error && this.tryReconnect) this._reconnect();
+      if (this.tryReconnect) this._reconnect();
     }
   }, {
     key: '_onMessage',

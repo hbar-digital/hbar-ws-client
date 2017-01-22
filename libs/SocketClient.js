@@ -56,7 +56,7 @@ module.exports = class SocketClient extends EventEmitter {
     clearInterval(this.pingInterval);
     if(this.onclose) this.onclose();
 
-    if(error && this.tryReconnect) this._reconnect();
+    if(this.tryReconnect) this._reconnect();
   }
 
   _onMessage(message) {
