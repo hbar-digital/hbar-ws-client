@@ -88,7 +88,9 @@ module.exports = class SocketClient extends EventEmitter {
   }
 
   _ping() {
-    this.emit('ping');
-    this.disconnectTimeout = setTimeout(this._onClose.bind(this), this.timeoutDelay);
+    if(this.socket.readyState == this.socket.OPEN) {
+        this.emit('ping');
+        this.disconnectTimeout = setTimeout(this._onClose.bind(this), this.timeoutDelay);
+    }
   }
 }
